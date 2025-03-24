@@ -1,0 +1,51 @@
+import React, { useEffect, useState } from "react";
+import { View, Text, Button, TextInput, Alert } from "react-native";
+import messaging from "@react-native-firebase/messaging";
+import axios from "axios";
+
+const App = () => {
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [token, setToken] = useState("");
+
+    useEffect(() => {
+        requestUserPermission();
+        const unsubscribe = messaging().onMessage(async (remoteMessage) => {
+            Alert.alert("Traffic Alert!", remoteMessage.notification.body);
+        });
+
+        return unsubscribe;
+    }, []);
+
+    const requestUserPermission = async () => {
+        const authStatus = await messaging().requestPermission();
+        const enabled = authStatus === messaging.AuthorizationStatus.AUTHORIZED || authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+        
+        if (enabled) {
+            console.log("Notification Permission Granted");
+            const fcmToken = await messaging().getToken();
+            console.log("FCM Token:", fcmToken);
+        }
+    };
+
+    const handleLogin = async () => {
+        try {
+            const response = await axios.post("http://localhost:5000/api/login", { email, password });
+            setToken(response.data.token);
+            Alert.alert("Login Successful!");
+        } catch (error) {
+            Alert.alert("Login Failed", error.response.data.error);
+        }
+    };
+
+    return (
+        <View style={{ padding: 20 }}>
+            <Text>SmartCommute</Text>
+            <TextInput placeholder="Email" value={email} onChangeText={setEmail} />
+            <TextInput placeholder="Password" secureTextEntry value={password} onChangeText={setPassword} />
+            <Button title="Login" onPress={handleLogin} />
+        </View>
+    );
+};
+
+export default App;
